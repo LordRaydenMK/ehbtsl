@@ -7,7 +7,7 @@ import arrow.core.left
 import io.github.lordraydenmk.errorhandling.domain.*
 import java.io.IOException
 
-class UserRepositoryImpl(private val signUp: SignUp) : UserRepository {
+class UserRepositoryImpl(private val signUp: SignUp = FakeSignUp()) : UserRepository {
 
     override suspend fun doSignUp(
         signUpData: SignUpData

@@ -34,11 +34,39 @@ data class SignUpData private constructor(val name: String, val signUpId: SignUp
 }
 
 sealed class SignUpId {
-    data class Email private constructor(val value: String) : SignUpId()
-    data class PhoneNumber private constructor(val value: String) : SignUpId()
+    data class Email private constructor(val value: String) : SignUpId() {
+        companion object {
+            fun create(email: String): ValidationRes<Email> =
+                if (email.contains("@")) Email(email).valid()
+                else FormFieldError(FormField.EMAIL, "Email must contain '@'".nel()).invalidNel()
+        }
+    }
+
+    data class PhoneNumber private constructor(val value: String) : SignUpId() {
+        companion object {
+            fun create(phoneNumber: String): ValidationRes<PhoneNumber> =
+                when {
+                    !phoneNumber.startsWith("+") -> FormFieldError(
+                        FormField.EMAIL,
+                        "Must start with '+'".nel()
+                    ).invalidNel()
+                    phoneNumber.length < 4 -> FormFieldError(
+                        FormField.EMAIL,
+                        "Must be at least 4 characters".nel()
+                    ).invalidNel()
+                    else -> PhoneNumber(phoneNumber).valid()
+                }
+        }
+    }
 
     companion object {
-        fun create(email: String?, phoneNumber: String?): ValidationRes<SignUpId> = TODO()
+
+        fun create(email: String?, phoneNumber: String?): ValidationRes<SignUpId> =
+            when {
+                email != null -> Email.create(email)
+                phoneNumber != null -> PhoneNumber.create(phoneNumber)
+                else -> FormFieldError(FormField.EMAIL, "Must provide an ID".nel()).invalidNel()
+            }
     }
 }
 
