@@ -24,6 +24,14 @@ class SignUpViewModel(private val userRepository: UserRepository = UserRepositor
         }
     }
 
+    fun onSwitchId(currentIdType: IdType) {
+        val newIdType = when (currentIdType) {
+            IdType.EMAIL -> IdType.PHONE
+            IdType.PHONE -> IdType.EMAIL
+        }
+        state.update { it.copy(idType = newIdType) }
+    }
+
     private suspend fun signUpUser(
         name: String,
         id: String,

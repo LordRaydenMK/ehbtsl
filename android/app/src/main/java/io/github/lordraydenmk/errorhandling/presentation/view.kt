@@ -5,9 +5,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.OutlinedButton
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,14 +25,15 @@ import androidx.compose.ui.unit.dp
 fun SignUpScreen(viewModel: SignUpViewModel) {
     val state = viewModel.state.collectAsState()
 
-    SignUpContent(
-        viewState = state.value,
-        onSubmit = { name, id -> viewModel.onSubmit(name, id) }
-    )
+    SignUpContent(state.value, viewModel::onSubmit, viewModel::onSwitchId)
 }
 
 @Composable
-fun SignUpContent(viewState: ViewState, onSubmit: (String, String) -> Unit) {
+fun SignUpContent(
+    viewState: ViewState,
+    onSubmit: (String, String) -> Unit,
+    onSwitchId: (IdType) -> Unit
+) {
     var name by remember { mutableStateOf(viewState.name.value) }
     var id by remember { mutableStateOf(viewState.id.value) }
 
@@ -59,6 +66,11 @@ fun SignUpContent(viewState: ViewState, onSubmit: (String, String) -> Unit) {
             viewState.id.error?.let { error ->
                 Text(text = error, color = Color.Red)
             }
+
+            OutlinedButton(onClick = { onSwitchId(viewState.idType) }) {
+                Text(text = viewState.switchButtonLabel)
+            }
+
             Button(
                 onClick = { onSubmit(name, id) },
                 modifier = Modifier.padding(4.dp)
@@ -80,6 +92,7 @@ fun SignUpPreview() {
             FormField("Stojan"),
             FormField("qwerty", "Invalid email"),
         ),
-        { _, _ -> }
+        { _, _ -> },
+        {}
     )
 }

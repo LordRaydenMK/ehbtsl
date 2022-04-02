@@ -20,6 +20,12 @@ data class ViewState(
             IdType.PHONE -> "Phone number"
         }
 
+    val switchButtonLabel: String
+        get() = when (idType) {
+            IdType.EMAIL -> "Use phone number"
+            IdType.PHONE -> "Use email"
+        }
+
     fun withError(nameError: String?, idError: String?): ViewState =
         copy(name = name.copy(error = nameError), id = id.copy(error = idError))
 
