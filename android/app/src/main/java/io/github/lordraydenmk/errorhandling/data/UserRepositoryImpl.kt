@@ -4,7 +4,12 @@ import arrow.core.Either
 import arrow.core.Nel
 import arrow.core.computations.either
 import arrow.core.left
-import io.github.lordraydenmk.errorhandling.domain.*
+import io.github.lordraydenmk.errorhandling.domain.FormField
+import io.github.lordraydenmk.errorhandling.domain.FormFieldError
+import io.github.lordraydenmk.errorhandling.domain.SignUpData
+import io.github.lordraydenmk.errorhandling.domain.SignUpError
+import io.github.lordraydenmk.errorhandling.domain.Token
+import io.github.lordraydenmk.errorhandling.domain.UserRepository
 import java.io.IOException
 
 class UserRepositoryImpl(private val signUp: SignUp = FakeSignUp()) : UserRepository {
@@ -26,17 +31,17 @@ class UserRepositoryImpl(private val signUp: SignUp = FakeSignUp()) : UserReposi
     private fun SignUpErrorDto.toDomainError(): SignUpError =
         if (errors.isEmpty()) SignUpError.HttpError(message)
         else {
-            val errorsNel = errors.map { it.toDomainError() }
+            val errorsNel = errors.mapNotNull { it.toDomainError() }
             SignUpError.ValidationError(Nel.fromListUnsafe(errorsNel))
         }
 
-    private fun FormFieldDto.toDomainError(): FormFieldError {
+    private fun FormFieldDto.toDomainError(): FormFieldError? {
         val formField = when (field) {
             "name" -> FormField.NAME
             "email" -> FormField.EMAIL
-            "phone" -> FormField.PHONE_NUMBER
-            else -> throw IllegalArgumentException("Invalid field: $field")
+            "phoneNumber" -> FormField.PHONE_NUMBER
+            else -> null // ignore errors for fields we don't know
         }
-        return FormFieldError(formField, Nel.fromListUnsafe(errors))
+        return formField?.let { FormFieldError(it, Nel.fromListUnsafe(errors)) }
     }
 }
