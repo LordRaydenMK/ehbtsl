@@ -12,10 +12,7 @@ typealias ValidationRes<A> = ValidatedNel<FormFieldError, A>
 
 fun validateName(name: String): ValidationRes<String> =
     if (name.isNotBlank()) name.valid()
-    else FormFieldError(
-        FormField.NAME,
-        "Name can't be blank".nel()
-    ).invalidNel()
+    else FormFieldError(FormFieldName.NAME, "Name can't be blank".nel()).invalidNel()
 
 data class SignUpData private constructor(val name: String, val signUpId: SignUpId) {
 
@@ -46,7 +43,10 @@ sealed class SignUpId {
         companion object {
             fun create(email: String): ValidationRes<Email> =
                 if (email.contains("@")) Email(email).valid()
-                else FormFieldError(FormField.EMAIL, "Email must contain '@'".nel()).invalidNel()
+                else FormFieldError(
+                    FormFieldName.EMAIL,
+                    "Email must contain '@'".nel()
+                ).invalidNel()
         }
     }
 
@@ -55,11 +55,11 @@ sealed class SignUpId {
             fun create(phoneNumber: String): ValidationRes<PhoneNumber> =
                 when {
                     !phoneNumber.startsWith("+") -> FormFieldError(
-                        FormField.PHONE_NUMBER,
+                        FormFieldName.PHONE_NUMBER,
                         "Must start with '+'".nel()
                     ).invalidNel()
                     phoneNumber.length < 4 -> FormFieldError(
-                        FormField.PHONE_NUMBER,
+                        FormFieldName.PHONE_NUMBER,
                         "Must be at least 4 characters".nel()
                     ).invalidNel()
                     else -> PhoneNumber(phoneNumber).valid()
@@ -73,7 +73,7 @@ sealed class SignUpId {
             when {
                 email != null -> Email.create(email)
                 phoneNumber != null -> PhoneNumber.create(phoneNumber)
-                else -> FormFieldError(FormField.EMAIL, "Must provide an ID".nel()).invalidNel()
+                else -> FormFieldError(FormFieldName.EMAIL, "Must provide an ID".nel()).invalidNel()
             }
     }
 }
@@ -81,11 +81,11 @@ sealed class SignUpId {
 @JvmInline
 value class Token(val value: String)
 
-enum class FormField {
+enum class FormFieldName {
     NAME, EMAIL, PHONE_NUMBER
 }
 
-data class FormFieldError(val formField: FormField, val errors: Nel<String>)
+data class FormFieldError(val formFieldName: FormFieldName, val errors: Nel<String>)
 
 sealed class SignUpError {
     data class ValidationError(val errors: Nel<FormFieldError>) : SignUpError()

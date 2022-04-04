@@ -4,8 +4,8 @@ import arrow.core.Either
 import arrow.core.Nel
 import arrow.core.computations.either
 import arrow.core.left
-import io.github.lordraydenmk.errorhandling.domain.FormField
 import io.github.lordraydenmk.errorhandling.domain.FormFieldError
+import io.github.lordraydenmk.errorhandling.domain.FormFieldName
 import io.github.lordraydenmk.errorhandling.domain.SignUpData
 import io.github.lordraydenmk.errorhandling.domain.SignUpError
 import io.github.lordraydenmk.errorhandling.domain.Token
@@ -37,9 +37,9 @@ class UserRepositoryImpl(private val signUp: SignUp = FakeSignUp()) : UserReposi
 
     private fun FormFieldDto.toDomainError(): FormFieldError? {
         val formField = when (field) {
-            "name" -> FormField.NAME
-            "email" -> FormField.EMAIL
-            "phoneNumber" -> FormField.PHONE_NUMBER
+            "name" -> FormFieldName.NAME
+            "email" -> FormFieldName.EMAIL
+            "phoneNumber" -> FormFieldName.PHONE_NUMBER
             else -> null // ignore errors for fields we don't know
         }
         return formField?.let { FormFieldError(it, Nel.fromListUnsafe(errors)) }
