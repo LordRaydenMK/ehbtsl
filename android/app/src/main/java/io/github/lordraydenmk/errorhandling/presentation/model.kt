@@ -5,11 +5,11 @@ enum class IdType { EMAIL, PHONE }
 data class FormField(val value: String, val error: String? = null)
 
 data class ViewState(
-    val showProgress: Boolean,
-    val error: String?,
-    val idType: IdType,
-    val name: FormField,
-    val id: FormField,
+    val showProgress: Boolean = false,
+    val error: String? = null,
+    val idType: IdType = IdType.EMAIL,
+    val name: FormField = FormField(""),
+    val id: FormField = FormField(""),
 ) {
 
     val nameLabel: String = "Name"
@@ -28,9 +28,4 @@ data class ViewState(
 
     fun withError(nameError: String?, idError: String?): ViewState =
         copy(name = name.copy(error = nameError), id = id.copy(error = idError))
-
-    companion object {
-
-        val DEFAULT = ViewState(false, null, IdType.EMAIL, FormField(""), FormField(""))
-    }
 }

@@ -19,7 +19,7 @@ class SignUpViewModel(
     private val userRepository: UserRepository = UserRepositoryImpl()
 ) : ViewModel() {
 
-    val state: MutableStateFlow<ViewState> = MutableStateFlow(ViewState.DEFAULT)
+    val state: MutableStateFlow<ViewState> = MutableStateFlow(ViewState())
 
     fun onSubmit(name: String, id: String) {
         viewModelScope.launch {
