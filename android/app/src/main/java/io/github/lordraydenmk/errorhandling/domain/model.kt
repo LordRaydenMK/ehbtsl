@@ -51,7 +51,7 @@ sealed class SignUpId {
                         "Must start with '+'".nel()
                     ).invalidNel()
                     phoneNumber.length < 4 -> FormFieldError(
-                        FormField.EMAIL,
+                        FormField.PHONE_NUMBER,
                         "Must be at least 4 characters".nel()
                     ).invalidNel()
                     else -> PhoneNumber(phoneNumber).valid()
