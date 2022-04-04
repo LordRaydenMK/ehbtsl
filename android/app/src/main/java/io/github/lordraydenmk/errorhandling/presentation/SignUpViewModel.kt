@@ -6,14 +6,18 @@ import arrow.core.Either
 import arrow.core.Nel
 import arrow.core.computations.either
 import io.github.lordraydenmk.errorhandling.data.UserRepositoryImpl
-import io.github.lordraydenmk.errorhandling.domain.*
 import io.github.lordraydenmk.errorhandling.domain.FormField
+import io.github.lordraydenmk.errorhandling.domain.FormFieldError
+import io.github.lordraydenmk.errorhandling.domain.SignUpData
+import io.github.lordraydenmk.errorhandling.domain.SignUpError
+import io.github.lordraydenmk.errorhandling.domain.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class SignUpViewModel(private val userRepository: UserRepository = UserRepositoryImpl()) :
-    ViewModel() {
+class SignUpViewModel(
+    private val userRepository: UserRepository = UserRepositoryImpl()
+) : ViewModel() {
 
     val state: MutableStateFlow<ViewState> = MutableStateFlow(ViewState.DEFAULT)
 
@@ -37,8 +41,8 @@ class SignUpViewModel(private val userRepository: UserRepository = UserRepositor
         id: String,
         viewState: ViewState
     ): Either<ViewState, Unit> = either {
-        val signUpData = validateForm(name, id, viewState).bind()
         state.update { it.copy(showProgress = true) }
+        val signUpData = validateForm(name, id, viewState).bind()
         userRepository.doSignUp(signUpData)
             .mapLeft { it.toViewState(viewState) }
             .bind()
