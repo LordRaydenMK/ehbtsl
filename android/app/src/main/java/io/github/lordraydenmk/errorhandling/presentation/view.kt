@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +34,8 @@ fun SignUpContent(
     onSubmit: (String, String) -> Unit,
     onSwitchId: (IdType) -> Unit
 ) {
-    var name by remember { mutableStateOf(viewState.name.value) }
-    var id by remember { mutableStateOf(viewState.id.value) }
+    var name by rememberSaveable { mutableStateOf(viewState.name.value) }
+    var id by rememberSaveable { mutableStateOf(viewState.id.value) }
 
     Column(
         modifier = Modifier
