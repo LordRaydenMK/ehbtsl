@@ -1,6 +1,11 @@
 package io.github.lordraydenmk.errorhandling.domain
 
-import arrow.core.*
+import arrow.core.Nel
+import arrow.core.ValidatedNel
+import arrow.core.invalidNel
+import arrow.core.nel
+import arrow.core.valid
+import arrow.core.zip
 import java.io.IOException
 
 typealias ValidationRes<A> = ValidatedNel<FormFieldError, A>
@@ -28,8 +33,11 @@ data class SignUpData private constructor(val name: String, val signUpId: SignUp
 
     companion object {
 
-        fun create(name: String, email: String?, phoneNumber: String?): ValidationRes<SignUpData> =
-            validateName(name).zip(SignUpId.create(email, phoneNumber), ::SignUpData)
+        fun create(name: String, email: String?, phoneNumber: String?): ValidationRes<SignUpData> {
+            val validatedName = validateName(name)
+            val validatedId = SignUpId.create(email, phoneNumber)
+            return validatedName.zip(validatedId, ::SignUpData)
+        }
     }
 }
 
@@ -47,7 +55,7 @@ sealed class SignUpId {
             fun create(phoneNumber: String): ValidationRes<PhoneNumber> =
                 when {
                     !phoneNumber.startsWith("+") -> FormFieldError(
-                        FormField.EMAIL,
+                        FormField.PHONE_NUMBER,
                         "Must start with '+'".nel()
                     ).invalidNel()
                     phoneNumber.length < 4 -> FormFieldError(
