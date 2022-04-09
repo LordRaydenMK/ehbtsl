@@ -31,6 +31,10 @@ data class ViewState(
             IdType.PHONE -> "Use email"
         }
 
+    fun withName(name: String): ViewState = copy(name = this.name.copy(value = name))
+
+    fun withId(value: String): ViewState = copy(id = this.id.copy(value = value))
+
     fun withErrors(nameError: String?, idError: String?): ViewState =
         copy(name = name.copy(error = nameError), id = id.copy(error = idError))
 

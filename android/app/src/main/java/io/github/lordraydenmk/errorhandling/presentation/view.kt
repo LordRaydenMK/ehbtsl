@@ -10,10 +10,6 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,23 +17,27 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-
 @Composable
 fun SignUpScreen(viewModel: SignUpViewModel = viewModel()) {
     val state = viewModel.state.collectAsState()
 
-    SignUpContent(state.value, viewModel::onSubmit, viewModel::onSwitchId)
+    SignUpContent(
+        state.value,
+        onSubmit = viewModel::onSubmit,
+        onNameChanged = viewModel::onNameChanged,
+        onIdChanged = viewModel::onIdChanged,
+        onSwitchId = viewModel::onSwitchId
+    )
 }
 
 @Composable
 fun SignUpContent(
     viewState: ViewState,
     onSubmit: (String, String) -> Unit,
+    onNameChanged: (String) -> Unit,
+    onIdChanged: (String) -> Unit,
     onSwitchId: (IdType) -> Unit
 ) {
-    var name by rememberSaveable { mutableStateOf(viewState.name.value) }
-    var id by rememberSaveable { mutableStateOf(viewState.id.value) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,16 +53,16 @@ fun SignUpContent(
             }
             OutlinedTextField(
                 label = { Text(text = viewState.nameLabel) },
-                value = name,
-                onValueChange = { name = it }
+                value = viewState.name.value,
+                onValueChange = { onNameChanged(it) }
             )
             viewState.name.error?.let { error ->
                 Text(text = error, color = Color.Red)
             }
             OutlinedTextField(
                 label = { Text(text = viewState.idLabel) },
-                value = id,
-                onValueChange = { id = it },
+                value = viewState.id.value,
+                onValueChange = { onIdChanged(it) },
             )
             viewState.id.error?.let { error ->
                 Text(text = error, color = Color.Red)
@@ -73,7 +73,7 @@ fun SignUpContent(
             }
 
             Button(
-                onClick = { onSubmit(name, id) },
+                onClick = { onSubmit(viewState.name.value, viewState.id.value) },
                 modifier = Modifier.padding(4.dp)
             ) {
                 Text(text = "Submit")
@@ -94,6 +94,8 @@ fun SignUpPreview() {
             FormField("qwerty", "Invalid email"),
         ),
         { _, _ -> },
+        {},
+        {},
         {}
     )
 }
