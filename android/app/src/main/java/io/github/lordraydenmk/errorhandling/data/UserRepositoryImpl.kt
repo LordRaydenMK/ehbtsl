@@ -25,23 +25,24 @@ class UserRepositoryImpl(private val signUp: SignUp = FakeSignUp()) : UserReposi
         }.bind()
         Token(result.token)
     }
+}
 
-    private fun SignUpData.toBody(): SignUpBody = SignUpBody(name, email, phoneNumber)
+private fun SignUpData.toBody(): SignUpBody = SignUpBody(name, email, phoneNumber)
 
-    private fun SignUpErrorDto.toDomainError(): SignUpError =
-        if (errors.isEmpty()) SignUpError.HttpError(message)
-        else {
-            val errorsNel = errors.mapNotNull { it.toDomainError() }
-            SignUpError.ValidationError(Nel.fromListUnsafe(errorsNel))
-        }
-
-    private fun FormFieldDto.toDomainError(): FormFieldError? {
-        val formField = when (field) {
-            "name" -> FormFieldName.NAME
-            "email" -> FormFieldName.EMAIL
-            "phoneNumber" -> FormFieldName.PHONE_NUMBER
-            else -> null // ignore errors for fields we don't know
-        }
-        return formField?.let { FormFieldError(it, Nel.fromListUnsafe(errors)) }
+private fun SignUpErrorDto.toDomainError(): SignUpError =
+    if (errors.isEmpty()) SignUpError.HttpError(message)
+    else {
+        val domainErrors = errors.mapNotNull { it.toDomainError() }
+        Nel.fromList(domainErrors)
+            .fold({ SignUpError.HttpError(message) }, { SignUpError.ValidationError(it) })
     }
+
+private fun FormFieldDto.toDomainError(): FormFieldError? {
+    val formField = when (field) {
+        "name" -> FormFieldName.NAME
+        "email" -> FormFieldName.EMAIL
+        "phoneNumber" -> FormFieldName.PHONE_NUMBER
+        else -> null // ignore errors for fields we don't know
+    }
+    return formField?.let { FormFieldError(it, Nel.fromListUnsafe(errors)) }
 }
