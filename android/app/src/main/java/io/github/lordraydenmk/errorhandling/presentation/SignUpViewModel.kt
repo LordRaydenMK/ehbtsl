@@ -44,7 +44,7 @@ class SignUpViewModel(
         state.update { it.clearErrors().copy(showProgress = true) }
         val signUpData = validateForm(name, id, viewState).bind()
         userRepository.doSignUp(signUpData)
-            .mapLeft { viewState.withError(it) }
+            .mapLeft { state.value.withError(it) }
             .bind()
         Unit
     }
