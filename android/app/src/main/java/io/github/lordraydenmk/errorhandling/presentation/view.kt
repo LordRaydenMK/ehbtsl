@@ -24,8 +24,8 @@ fun SignUpScreen(viewModel: SignUpViewModel = viewModel()) {
     SignUpContent(
         state.value,
         onSubmit = viewModel::onSubmit,
-        onNameChanged = viewModel::onNameChanged,
-        onIdChanged = viewModel::onIdChanged,
+        onNameChange = viewModel::onNameChange,
+        onIdChange = viewModel::onIdChange,
         onSwitchId = viewModel::onSwitchId
     )
 }
@@ -34,8 +34,8 @@ fun SignUpScreen(viewModel: SignUpViewModel = viewModel()) {
 fun SignUpContent(
     viewState: ViewState,
     onSubmit: (String, String) -> Unit,
-    onNameChanged: (String) -> Unit,
-    onIdChanged: (String) -> Unit,
+    onNameChange: (String) -> Unit,
+    onIdChange: (String) -> Unit,
     onSwitchId: (IdType) -> Unit
 ) {
     Column(
@@ -54,7 +54,7 @@ fun SignUpContent(
             OutlinedTextField(
                 label = { Text(text = viewState.nameLabel) },
                 value = viewState.name.value,
-                onValueChange = { onNameChanged(it) },
+                onValueChange = { onNameChange(it) },
                 isError = viewState.name.error != null
             )
             viewState.name.error?.let { error ->
@@ -63,7 +63,7 @@ fun SignUpContent(
             OutlinedTextField(
                 label = { Text(text = viewState.idLabel) },
                 value = viewState.id.value,
-                onValueChange = { onIdChanged(it) },
+                onValueChange = { onIdChange(it) },
                 isError = viewState.id.error != null
             )
             viewState.id.error?.let { error ->

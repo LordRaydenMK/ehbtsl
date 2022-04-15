@@ -32,9 +32,9 @@ class SignUpViewModel(
         state.update { it.copy(idType = newIdType) }
     }
 
-    fun onNameChanged(name: String) = state.update { it.withName(name) }
+    fun onNameChange(name: String): Unit = state.update { it.withName(name) }
 
-    fun onIdChanged(value: String) = state.update { it.withId(value) }
+    fun onIdChange(value: String): Unit = state.update { it.withId(value) }
 
     private suspend fun signUpUser(
         name: String,
