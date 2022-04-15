@@ -19,7 +19,8 @@ class UserRepositoryImpl(private val signUp: SignUp = FakeSignUp()) : UserReposi
     ): Either<SignUpError, Token> = either {
         val body = signUpData.toBody()
         val result = try {
-            signUp.signUp(body).mapLeft { it.toDomainError() }
+            signUp.signUp(body)
+                .mapLeft { it.toDomainError() }
         } catch (t: IOException) {
             SignUpError.IOError(t).left()
         }.bind()
@@ -29,13 +30,14 @@ class UserRepositoryImpl(private val signUp: SignUp = FakeSignUp()) : UserReposi
 
 private fun SignUpData.toBody(): SignUpBody = SignUpBody(name, email, phoneNumber)
 
-private fun SignUpErrorDto.toDomainError(): SignUpError =
-    if (errors.isEmpty()) SignUpError.HttpError(message)
-    else {
-        val domainErrors = errors.mapNotNull { it.toDomainError() }
-        Nel.fromList(domainErrors)
-            .fold({ SignUpError.HttpError(message) }, { SignUpError.ValidationError(it) })
-    }
+private fun SignUpErrorDto.toDomainError(): SignUpError {
+    val domainErrors = errors.mapNotNull { it.toDomainError() }
+    return Nel.fromList(domainErrors)
+        .fold(
+            { SignUpError.HttpError(message) },
+            { SignUpError.ValidationError(it) }
+        )
+}
 
 private fun FormFieldDto.toDomainError(): FormFieldError? {
     val formField = when (field) {
