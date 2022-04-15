@@ -54,7 +54,8 @@ fun SignUpContent(
             OutlinedTextField(
                 label = { Text(text = viewState.nameLabel) },
                 value = viewState.name.value,
-                onValueChange = { onNameChanged(it) }
+                onValueChange = { onNameChanged(it) },
+                isError = viewState.name.error != null
             )
             viewState.name.error?.let { error ->
                 Text(text = error, color = Color.Red)
@@ -63,6 +64,7 @@ fun SignUpContent(
                 label = { Text(text = viewState.idLabel) },
                 value = viewState.id.value,
                 onValueChange = { onIdChanged(it) },
+                isError = viewState.id.error != null
             )
             viewState.id.error?.let { error ->
                 Text(text = error, color = Color.Red)
