@@ -55,10 +55,10 @@ class SignUpViewModel(
         viewState: ViewState
     ): Either<ViewState, SignUpData> {
         val idType = viewState.idType
-        val email = if (idType == IdType.EMAIL) id else null
-        val phone = if (idType == IdType.PHONE) id else null
-        val signUpData = SignUpData.create(name, email, phone)
-            .mapLeft { viewState.withErrors(it) }
+        val signUpData = when (idType) {
+            IdType.EMAIL -> SignUpData.createEmail(name, id)
+            IdType.PHONE -> SignUpData.createPhone(name, id)
+        }.mapLeft { viewState.withErrors(it) }
         return signUpData.toEither()
     }
 }

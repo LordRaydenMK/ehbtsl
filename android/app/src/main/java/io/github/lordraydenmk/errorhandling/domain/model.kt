@@ -8,73 +8,78 @@ import arrow.core.valid
 import arrow.core.zip
 import java.io.IOException
 
-typealias ValidationRes<A> = ValidatedNel<FormFieldError, A>
+typealias ValidationRes<A> = ValidatedNel<String, A>
+
+typealias FormValidationRes<A> = ValidatedNel<FormFieldError, A>
 
 fun validateName(name: String): ValidationRes<String> =
     if (name.isNotBlank()) name.valid()
-    else FormFieldError(FormFieldName.NAME, "Name can't be blank".nel()).invalidNel()
+    else "Name can't be blank".invalidNel()
 
-data class SignUpData private constructor(val name: String, val signUpId: SignUpId) {
+sealed interface SignUpId
+
+@JvmInline
+value class Email private constructor(val value: String) : SignUpId {
+
+    companion object {
+
+        fun create(value: String): ValidationRes<Email> =
+            if (value.contains('@')) Email(value).valid()
+            else "Email must contain '@'".invalidNel()
+    }
+}
+
+@JvmInline
+value class PhoneNumber private constructor(val value: String) : SignUpId {
+
+    companion object {
+
+        fun create(value: String): ValidationRes<PhoneNumber> =
+            validateStart(value).zip(validateLength(value)) { _, phone ->
+                PhoneNumber(phone)
+            }
+
+        private fun validateStart(value: String): ValidationRes<String> =
+            if (value.startsWith('+')) value.valid()
+            else "Phone number must start with '+'".invalidNel()
+
+        private fun validateLength(value: String): ValidationRes<String> =
+            if (value.length > 4) value.valid()
+            else "Phone number must be at least 4 chars".invalidNel()
+    }
+}
+
+data class SignUpData(val name: String, val signUpId: SignUpId) {
 
     val email: String?
         get() = when (signUpId) {
-            is SignUpId.Email -> signUpId.value
-            is SignUpId.PhoneNumber -> null
+            is Email -> signUpId.value
+            is PhoneNumber -> null
         }
 
     val phoneNumber: String?
         get() = when (signUpId) {
-            is SignUpId.Email -> null
-            is SignUpId.PhoneNumber -> signUpId.value
+            is Email -> null
+            is PhoneNumber -> signUpId.value
         }
 
     companion object {
 
-        fun create(name: String, email: String?, phoneNumber: String?): ValidationRes<SignUpData> {
+        fun createEmail(name: String, email: String): FormValidationRes<SignUpData> {
             val validatedName = validateName(name)
-            val validatedId = SignUpId.create(email, phoneNumber)
+                .mapLeft { FormFieldError(FormFieldName.NAME, it).nel() }
+            val validatedId = Email.create(email)
+                .mapLeft { FormFieldError(FormFieldName.EMAIL, it).nel() }
             return validatedName.zip(validatedId, ::SignUpData)
         }
-    }
-}
 
-sealed class SignUpId {
-    data class Email private constructor(val value: String) : SignUpId() {
-        companion object {
-            fun create(email: String): ValidationRes<Email> =
-                if (email.contains("@")) Email(email).valid()
-                else FormFieldError(
-                    FormFieldName.EMAIL,
-                    "Email must contain '@'".nel()
-                ).invalidNel()
+        fun createPhone(name: String, phoneNumber: String): FormValidationRes<SignUpData> {
+            val validatedName = validateName(name)
+                .mapLeft { FormFieldError(FormFieldName.NAME, it).nel() }
+            val validatedId = PhoneNumber.create(phoneNumber)
+                .mapLeft { FormFieldError(FormFieldName.PHONE_NUMBER, it).nel() }
+            return validatedName.zip(validatedId, ::SignUpData)
         }
-    }
-
-    data class PhoneNumber private constructor(val value: String) : SignUpId() {
-        companion object {
-            fun create(phoneNumber: String): ValidationRes<PhoneNumber> =
-                when {
-                    !phoneNumber.startsWith("+") -> FormFieldError(
-                        FormFieldName.PHONE_NUMBER,
-                        "Must start with '+'".nel()
-                    ).invalidNel()
-                    phoneNumber.length < 4 -> FormFieldError(
-                        FormFieldName.PHONE_NUMBER,
-                        "Must be at least 4 characters".nel()
-                    ).invalidNel()
-                    else -> PhoneNumber(phoneNumber).valid()
-                }
-        }
-    }
-
-    companion object {
-
-        fun create(email: String?, phoneNumber: String?): ValidationRes<SignUpId> =
-            when {
-                email != null -> Email.create(email)
-                phoneNumber != null -> PhoneNumber.create(phoneNumber)
-                else -> FormFieldError(FormFieldName.EMAIL, "Must provide an ID".nel()).invalidNel()
-            }
     }
 }
 
