@@ -19,7 +19,7 @@ class SignUpViewModel(
 
     fun onSubmit(name: String, id: String) {
         viewModelScope.launch {
-            signUpUser(name, id, state.value)
+            signUpUser(name, id)
                 .fold({ state.value = it }, { /* TODO: navigate to Home */ })
         }
     }
@@ -38,11 +38,10 @@ class SignUpViewModel(
 
     private suspend fun signUpUser(
         name: String,
-        id: String,
-        viewState: ViewState
+        id: String
     ): Either<ViewState, Unit> = either {
         state.update { it.clearErrors().copy(showProgress = true) }
-        val signUpData = validateForm(name, id, viewState).bind()
+        val signUpData = validateForm(name, id, state.value).bind()
         userRepository.doSignUp(signUpData)
             .mapLeft { state.value.withError(it) }
             .bind()
