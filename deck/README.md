@@ -4,6 +4,8 @@
 
 @s_anastasov
 
+![Axel Springer logo](images/as.png) <!-- .element width="60%" -->
+
 ---
 
 ## Agenda
