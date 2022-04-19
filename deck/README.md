@@ -10,16 +10,18 @@
 
 - Problem description
 - The happy path
-- Error handling (Kotlin Standard Library)
+- Error handling in Kotlin
 - Split the problem into 2
-- Solve sub-problem 1
-- Solve sub-problem 2
+- Accumulating errors
+- Failing fast
+
+Note: Learn about Validated and Either and how they help with accumulating errors and avoid the pyramid of doom. 
 
 ---
 
 ## Problem description
 
-We are building an app and need a sign up form. Users need to provide:
+We are building an app and need a sign up form. Users provide:
 
 - their **name**
 - one of **email** OR **phone number**
@@ -105,6 +107,8 @@ fun onSubmit(name: String, id: String) {
 }
 ```
 
+Note: This code works, sometimes
+
 ---
 
 ## What could go wrong
@@ -122,8 +126,6 @@ fun onSubmit(name: String, id: String) {
 
 ### Additional requirements
 
-We are building an app and need a sign up form.
-
 - **Validate** data before submitting
 - Backend also validates data
 - Help the users fix the errors
@@ -134,6 +136,8 @@ We are building an app and need a sign up form.
 ## Screenshot
 
 ![UI](images/ui.png) <!-- .element width="70%" -->
+
+Note: middle - form with errors - local validation or 4XX. <br/>right - generic error, e.g. network error or 5XX
 
 ---
 
@@ -171,6 +175,7 @@ https://elizarov.medium.com/kotlin-and-exceptions-8062f589d07
 - (Checked) Exceptions
 - Nullable types
 - Sealed classes
+- Move the problem (not in the blog post)
 
 >--
 
@@ -206,11 +211,11 @@ Improvement over sentinel values, but have their own problems. <!-- .element: cl
 
 ### Problems with Exceptions 
 
-- Exceptions that never happen declared as checked
-- APIs with long exception lists
-- Developers catch and ignore exceptions
-- Checked exceptions don't work well with HOF
-- Fatal VS expected can depend on the client
+- Exceptions that never happen declared as checked <!-- .element: class="fragment" data-fragment-index="1" -->
+- APIs with long exception lists <!-- .element: class="fragment" data-fragment-index="2" -->
+- Developers catch and ignore exceptions <!-- .element: class="fragment" data-fragment-index="3" -->
+- Checked exceptions don't work well with HOF <!-- .element: class="fragment" data-fragment-index="4" -->
+- Fatal VS expected can depend on the client <!-- .element: class="fragment" data-fragment-index="5" -->
 
 >--
 
@@ -245,7 +250,7 @@ val number: Int = "42".toInt()
 // x = 42
 ```
 
-- Useful for constants in the code
+Useful for constants in the code
 
 ```kotlin
 val input = getUserInput() // "stojan"
@@ -254,7 +259,7 @@ val number: Int? = input.toIntOrNull()
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-- Works well for dynamic values e.g. user input. <!-- .element: class="fragment" data-fragment-index="1" -->
+Works well for dynamic values e.g. user input. <!-- .element: class="fragment" data-fragment-index="1" -->
 
 >--
 
@@ -274,8 +279,8 @@ fun DateFormat.tryParse(text: String): ParsedDate =
     }
 ```
 
-- Works for multiple/different failures
-- Can provide additional data
+- Works for multiple/different failures <!-- .element: class="fragment" data-fragment-index="1" -->
+- Can provide additional data <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -298,6 +303,8 @@ fun resetPassword(email: String) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+Note: callers of `signUp` still need to use `validatedEmail`, `require` is just a backup. <br/> write tests <br/> Nullable and Sealed modify the output, this works with the input
+
 >--
 
 ## Move the problem
@@ -309,17 +316,24 @@ value class Email private constructor(val value: String) {
   companion object {
 
     fun create(value: String): Email? =
-      if (value.contains('@')) value
+      if (value.contains('@')) Email(value)
       else null
   }
 }
+```
 
+```kotlin
 fun signUp(email: Email) = TODO()
 
 fun resetPassword(email: Email) = TODO()
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
+
+## Building the App
+
+>--
 
 ## Domain Layer
 
@@ -331,14 +345,20 @@ value class Email(val value: String) : SignUpId
 
 @JvmInline
 value class PhoneNumber(val value: String) : SignUpId
+```
 
+```kotlin
 data class SignUpData(val name: String, val signUpId: SignUpId)
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```kotlin
 @JvmInline
 value class Token(val value: String)
 ```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+Note: Email and PhoneNumber get a wrapper type, name doesn't. There is a trade off.
 
 >--
 
@@ -355,25 +375,21 @@ interface UserRepository {
 
 ## Adding error handling
 
-Sub-problem 2
-
 ![Flow with error handling](mermeid/flow.png)
 
-- Two steps that can fail
-- Abort on the first error
+- Two steps that can fail <!-- .element: class="fragment" data-fragment-index="1" -->
+- Abort on the first error <!-- .element: class="fragment" data-fragment-index="1" -->
 
 >--
 
 ## Form Validation
 
-Sub-problem 1
-
 ![Form validation](mermeid/form.png)
 
-- Validate data independently
-- Accumulate error
+- Validate data independently <!-- .element: class="fragment" data-fragment-index="1" -->
+- Accumulate error <!-- .element: class="fragment" data-fragment-index="1" -->
 
----
+>--
 
 ## Validation Rules
 
@@ -381,6 +397,12 @@ Sub-problem 1
 - **Email** must contain '@'
 - **Phone number** starts with '+'
 - **Phone number** is at least 4 characters
+
+---
+
+## The Validation Problem
+
+#### Accumulating errors
 
 >--
 
@@ -401,6 +423,8 @@ fun validateForm(
 ): SignUpData?
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+Note: we can implement name and phoneNumber <br/> we can NOT implement validatePhone and validateForm
 
 >--
 
@@ -441,7 +465,7 @@ sealed class FormResult {
 
 ```kotlin
 fun validatePhoneForm(
-  name: String, id: String
+  name: String, phone: String
 ): FormResult {
   val validName = validateName(name)
   val validPhone = validatePhone(phone)
@@ -451,10 +475,12 @@ fun validatePhoneForm(
     validName == null && validPhone is Success -> TODO()
     validName != null && validPhone is Error -> TODO()
     validName == null && validPhone is Error -> TODO()
-    else -> throw IllegalStateException()
+    else -> throw IllegalStateException("This never happens")
   }
 }
 ```
+
+Note: similar function exists for email validation.
 
 >--
 
@@ -468,10 +494,12 @@ fun validatePhoneForm(
 
 ## Arrow
 
-- **Core** - Functional companion to Kotlin’s Standard Library
+- **Core** - Functional companion to Kotlin's Standard Library
 - **Fx** - Functional Effects
 - **Optics** - Deep access and transformations over immutable data
 - **Analysis** - Pre-, post-condition and invariant checks for kotlin
+
+Note: in this talk we only talk about Core
 
 >--
 
@@ -553,24 +581,30 @@ fun validateLength(
 
 ```kotlin
 fun create(value: String): ValidatedNel<String, PhoneNumber> {
+  // ValidatedNel<String, String>
   val start = validateStart(value)
-  val length = validateLength(value)
+  // // ValidatedNel<String, String>
+  val length = validateLength(value) 
   return start.zip(length) { _, phone -> PhoneNumber(phone) }
 }
 ```
 
 ```kotlin
 PhoneNumber.create("")
-// Invalid(Nel["Phone number must start with '+'", "Phone number must be at least 4 chars"])
+// Invalid(Nel["Must start with '+'", "Must be at least 4 chars"])
 
 PhoneNumber.create("+49555555")
 // Valid(value=PhoneNumber(+49555555))
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+Note: zip executes the lambda ONLY if both are Valid. <br/> in case of invalid, it merges the errors (the errors are a List so merging is creating a new list with elements of both)
+
 ---
 
 ## Validated Form
+
+Domain model for the error
 
 ```kotlin
 enum class FormFieldName {
@@ -606,6 +640,9 @@ value class Email private constructor(val value: String) {
     }
 }
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+Note: name - single error, nullable strategy
 
 >--
 
@@ -634,33 +671,70 @@ value class PhoneNumber private constructor(val value: String) {
 }
 ```
 
+Note: Multiple errors, switch to Validated
+
+>--
+
+## Validated <3 Kotlin
+
+```kotlin
+val validName = Validated.fromNullable(validateName(name)) {
+    "Name can't be blank"
+  }
+val validPhone = PhoneNumber.create(phoneNumber)
+
+validName.zip(validPhone) { name, phone -> TODO() }
+```
+
 >--
 
 ## Validated Form
 
 ```kotlin
-// SignUpData companion object
-fun createEmail(
-  name: String, 
-  email: String
+fun SignUpData.createEmail(
+  name: String, email: String
 ): FormValidationRes<SignUpData> {
   val nameOrNull = validateName(name)
   val validatedName = Validated.fromNullable(nameOrNull) {
       "Name can't be blank"
-  }.mapLeft { FormFieldError(FormFieldName.NAME, it.nel()).nel() }
+  }.mapLeft { FormFieldError(NAME, it.nel()).nel() }
 
-  val validatedEmail = Email.create(email)
-      .mapLeft { FormFieldError(FormFieldName.EMAIL, it).nel() }
+  val emailOrNull = Email.create(email)
+  val validatedEmail = Validated.fromNullable(emailOrNull) {
+      "Email must contain '@'"
+  }.mapLeft { FormFieldError(EMAIL, it.nel()).nel() }
 
   return validatedName.zip(validatedEmail, ::SignUpData)
 }
 ```
 
+Note: Use nullable for single error, Validated when we need more
+
+>--
+
+## Validated Form
+
+```kotlin
+val signUpData = SignUpData.createEmail(
+  "Stojan", 
+  "stojan@gmail.com"
+)
+//Valid(SignUpData(name=Stojan,signUpId=Email(stojan@gmail.com)))
+```
+
 ---
+
+## Fail Fast Problem
+
+![Flow with error handling](mermeid/flow.png)
+
+>--
 
 ## Nullable Submit
 
 ```kotlin
+// Won't work, different kinds of error
+
 interface UserRepository {
 
     suspend fun doSignUp(signUpData: SignUpData): Token?
@@ -668,55 +742,21 @@ interface UserRepository {
 ```
 
 ```kotlin
-// We already saw that this won't work
+// Won't work, might need more than 1 error
 
 fun validateForm(
   name: String, id: String, idType: IdType
 ): SignUpData? = TODO()
 ```
 
->--
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-## Nullable Submit
+The compiler will make sure errors are handled
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
-```kotlin
-// ViewModel
-val repo: SignUpRepo // injected
-
-val state = MutableStateFlow(ViewState())
-
-fun onSubmit(name: String, id: String) {
-  state.update { it.copy(showProgress = true) }
-  
-  val body = validateForm(name, id, state.value.idType)
-  if (body != null) {
-  
-    viewModelScope.launch {
-      val token = repo .doSignUp(body) // Smart cast
-      if (token != null) {
-        // TODO: success
-      } else {
-        state.update { it.copy(error = "Error submitting form") }
-      }
-    }
-  } else {
-    state.update { it.copy(error = "Invalid input") }
-  }
-}
-```
+Note: doesn't work with current requirements, if you have different requirements it might work
 
 >--
-
-## Nullable Submit
-
-- Code fairly simple
-- Smart casts make sure we handle errors
-- We can have only one error per "step"
-  - Why is the form invalid?
-  - Wrong data or is the internet off?
-
-
----
 
 ## Sealed Submit
 
@@ -725,7 +765,9 @@ data class FieldErrorDto(
   val name: String,
   val error: String
 )
+```
 
+```kotlin
 sealed class DoSignUpResult {
   data class Success(token: String): DoSignUpResult()
   data class HttpError(
@@ -735,6 +777,7 @@ sealed class DoSignUpResult {
   object NetworkError: DoSignUpResult()
 }
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 >--
 
@@ -811,6 +854,7 @@ fun onSubmit(name: String, id: String) {
 - Code is a bit more complex
 - Support for better error messages
 - Doesn't scale well with number of steps
+  - Risk of pyramid of doom
 
 >--
 
@@ -828,6 +872,8 @@ if (x is Success) {
     }
 }
 ```
+
+Note: there is a pattern here
 
 ---
 
@@ -851,6 +897,7 @@ val right = "5".right()
 val left = "Something went wrong".left()
 // Left(value="Something went wrong")
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 >--
 
@@ -867,6 +914,8 @@ fun submitForm(
 ): Either<List<FormError>>, Token> = TODO()
 ```
 
+Note: the input of the second function matches the right side of the output of the first
+
 >--
 
 ## Failing Fast
@@ -882,6 +931,8 @@ if (signUpData is Right) {
   }
 }
 ```
+
+Note: Either is a sealed class so this also works, but suffers from the same problem.
 
 >--
 
@@ -901,6 +952,8 @@ either<List<FormError>, Token> {
 // Right(value=myToken)
 ```
 
+Note: this is syntax sugar for the core from the previous slide <br/> bind() is only accessible in the either block <br/> each bind() will continue in case of Right - otherwise short circuit
+
 >--
 
 ## Failing Fast
@@ -913,6 +966,8 @@ either<List<FormError>, Token> {
 }
 // Left(value=["Name can't be empty", "Email must contain '@'"])
 ```
+
+Note: submitForm is NOT executed here
 
 ---
 
@@ -928,12 +983,15 @@ either<List<FormError>, Token> {
     val message: String,
     val errors: List<FormFieldDto>
 )
+```
 
+```kotlin
 @POST("/signup")
 suspend fun signUp(
   body: SignUpBody
 ): Either<SignUpErrorDto, SignUpResult>
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 >--
 
@@ -985,10 +1043,8 @@ private fun validateForm(
   name: String,
   id: String,
   viewState: ViewState
-): Either<ViewState, SignUpData> {
-  val idType = viewState.idType
-  
-  val signUpData = when (idType) {
+): Either<ViewState, SignUpData> {  
+  val signUpData = when (viewState.idType) {
     IdType.EMAIL -> SignUpData.createEmail(name, id)
     IdType.PHONE -> SignUpData.createPhone(name, id)
   }.mapLeft { viewState.withErrors(it) }
@@ -1002,6 +1058,7 @@ private fun validateForm(
 ## Submit Form
 
 ```kotlin
+// ViewModel
 private suspend fun signUpUser(
   name: String,
   id: String,
@@ -1020,6 +1077,7 @@ private suspend fun signUpUser(
 ## Submit Form
 
 ```kotlin
+// ViewModel
 fun onSubmit(name: String, id: String) {
   viewModelScope.launch {
     signUpUser(name, id)
@@ -1054,6 +1112,6 @@ fun onSubmit(name: String, id: String) {
 
 ## The End
 
-Thank you for the attention
+Thank you for your attention
 
 @s_anastasov
