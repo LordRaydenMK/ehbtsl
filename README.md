@@ -22,4 +22,4 @@ Kotlin and the standard library offer some approaches for dealing with errors li
 
 After attending this talk, you will have yet another tool in your toolbelt that will help you build robust applications.
 
-[dxlx]: https://www.lisbon.droidcon.com/session/error-handling-beyond-the-standard-library
+[dclx]: https://www.lisbon.droidcon.com/session/error-handling-beyond-the-standard-library
