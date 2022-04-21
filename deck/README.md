@@ -19,7 +19,7 @@
 - Accumulating errors
 - Failing fast
 
-Note: Learn about Validated and Either and how they help with accumulating errors and avoid the pyramid of doom. 
+Note: Learn about Validated and Either from Arrow and what problems do they solve.
 
 ---
 
@@ -68,6 +68,8 @@ interface SignUp {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+Note: DTOs for request/response. KotlinX Serialization. Retrofit interface with suspend support
+
 >--
 
 ## Presentation Layer
@@ -111,7 +113,7 @@ fun onSubmit(name: String, id: String) {
 }
 ```
 
-Note: This code works, sometimes
+Note: This code works, sometimes!
 
 ---
 
@@ -198,6 +200,8 @@ if (file == NULL) {
 - Tedious <!-- .element: class="fragment" data-fragment-index="1" -->
 - Easy to forget <!-- .element: class="fragment" data-fragment-index="1" -->
 - Hard to debug <!-- .element: class="fragment" data-fragment-index="1" --> 
+
+Note: C doesn't have null safety
 
 >-- 
 
@@ -286,6 +290,8 @@ fun DateFormat.tryParse(text: String): ParsedDate =
 - Works for multiple/different failures <!-- .element: class="fragment" data-fragment-index="1" -->
 - Can provide additional data <!-- .element: class="fragment" data-fragment-index="1" -->
 
+Note: Nullable and Sealed modify the output, pushing the problem down the call chain
+
 ---
 
 ## Move the problem
@@ -333,6 +339,8 @@ fun resetPassword(email: Email) = TODO()
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+Note: `signUp()`, `resetPassword()` and any other function using `Email` no longer has to validate it. 
+
 ---
 
 ## Building the App
@@ -362,7 +370,7 @@ value class Token(val value: String)
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
-Note: Email and PhoneNumber get a wrapper type, name doesn't. There is a trade off.
+Note: Email and PhoneNumber get a wrapper type, name doesn't. There is a trade off. <br/> SignUpId enforces that at least one of Email or PhoneNumber will be there
 
 >--
 
@@ -374,6 +382,8 @@ interface UserRepository {
     suspend fun doSignUp(signUpData: SignUpData): Token
 }
 ```
+
+Note: Uses domain types, makes data depend on domain
 
 >--
 
@@ -401,6 +411,8 @@ interface UserRepository {
 - **Email** must contain '@'
 - **Phone number** starts with '+'
 - **Phone number** is at least 4 characters
+
+Note: these are my arbitrary rules, in your app you might have other
 
 ---
 
@@ -535,6 +547,8 @@ validatePhone("+49555555")
 // Valid(value=PhoneNumber(+49555555))
 ```
 
+Note: we still have only one error
+
 >--
 
 ## Accumulating Errors
@@ -552,6 +566,8 @@ val nelOpt: Option<Nel<Int>> = Nel.fromList(list)
 // Option.Some([1, 2, 3])
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+Note: `nonEmptyListOf()` requires at least one element. `fromList` forces handling of the failure. 
 
 >--
 
@@ -851,11 +867,12 @@ fun onSubmit(name: String, id: String) {
 }
 ```
 
+Note: with more steps we might end up with the pyramid of doom
+
 >--
 
 ## Sealed Submit
 
-- Code is a bit more complex
 - Support for better error messages
 - Doesn't scale well with number of steps
   - Risk of pyramid of doom
@@ -956,7 +973,7 @@ either<List<FormError>, Token> {
 // Right(value=myToken)
 ```
 
-Note: this is syntax sugar for the core from the previous slide <br/> bind() is only accessible in the either block <br/> each bind() will continue in case of Right - otherwise short circuit
+Note: this is syntax sugar for the code from the previous slide <br/> bind() is only accessible in the either block <br/> each bind() will continue in case of Right - otherwise short circuit
 
 >--
 
@@ -997,6 +1014,8 @@ suspend fun signUp(
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+Note: arrow has built in support for Retrofit with Either. It handles HTTP errors
+
 >--
 
 ## Submit Form
@@ -1023,6 +1042,7 @@ sealed class SignUpError {
 ## Submit Form
 
 ```kotlin
+// UserRepository
 override suspend fun doSignUp(
     signUpData: SignUpData
 ): Either<SignUpError, Token> = either {
@@ -1056,6 +1076,8 @@ private fun validateForm(
   return signUpData.toEither()
 }
 ```
+
+Note: Convert to Either to chain it with Repo call
 
 >--
 
@@ -1109,8 +1131,9 @@ fun onSubmit(name: String, id: String) {
 ## Error Handling
 
 - `Validated<E, A>` - accumulating errors using `zip`
+  - Focus on the happy path, arrow handles accumulating errors
 - `Either<A, B>` - multiple failures, across boundaries
-  - `either {}`
+  - `either {}` solves the pyramid of doom problem
 
 ---
 
