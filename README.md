@@ -13,6 +13,7 @@ npm start
 ## Presented at:
 
 - [Droidcon Lisbon 2022][dclx]
+- [Droidcon Berlin 2022][dcbln]
 
 ## Abstract
 
@@ -23,3 +24,4 @@ Kotlin and the standard library offer some approaches for dealing with errors li
 After attending this talk, you will have yet another tool in your toolbelt that will help you build robust applications.
 
 [dclx]: https://www.lisbon.droidcon.com/session/error-handling-beyond-the-standard-library
+[dcbln]: https://berlin.droidcon.com/stojan-anastasov/
