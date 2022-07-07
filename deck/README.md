@@ -14,10 +14,10 @@
 
 - Problem description
 - The happy path
-- Error handling in Kotlin
-- Split the problem into 2
-- Accumulating errors
-- Failing fast
+- Error handling stragegies in Kotlin
+- Split the problem into subproblems
+    - Accumulating errors
+    - Failing fast
 
 Note: Learn about Validated and Either from Arrow and what problems do they solve.
 
@@ -89,7 +89,7 @@ data class ViewState(
 )
 ```
 
-This is the model that Compose will render.
+Compose will render the `ViewState` model.
 
 >--
 
@@ -147,7 +147,7 @@ Note: middle - form with errors - local validation or 4XX. <br/>right - generic 
 
 ---
 
-## Dealing with failure
+## What is a failure
 
 There is an input value for which a function can't compute an output
 
@@ -267,7 +267,15 @@ val number: Int? = input.toIntOrNull()
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-Works well for dynamic values e.g. user input. <!-- .element: class="fragment" data-fragment-index="1" -->
+Works well for dynamic values e.g. user input <!-- .element: class="fragment" data-fragment-index="1" -->
+
+>--
+
+## Nullable Values
+
+- Dealing with the possibility of the failure is enforced by the compiler
+- Limitted to a single failure reason
+- No additional information
 
 >--
 
@@ -297,21 +305,16 @@ Note: Nullable and Sealed modify the output, pushing the problem down the call c
 ## Move the problem
 
 ```kotlin
-fun validateEmail(email: String): Boolean = TODO()
-
 fun signUp(email: String) {
-  require(validateEmail(email)) { "Invalid email" }
+  require(email.contains('@')) { "Invalid email" }
   TODO()
 }
-```
 
-```kotlin
 fun resetPassword(email: String) {
-  require(validateEmail(email)) { "Invalid email" }
+  require(email.contains('@')) { "Invalid email" }
   TODO()
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 Note: callers of `signUp` still need to use `validatedEmail`, `require` is just a backup. <br/> write tests <br/> Nullable and Sealed modify the output, this works with the input
 
@@ -424,12 +427,16 @@ Note: these are my arbitrary rules, in your app you might have other
 
 ## Nullable Validate
 
+We can implement:
+
 ```kotlin
 fun validateName(name: String): String? = 
     if (name.isBlank()) null else name
 
 fun validateEmail(email: String): Email? = TODO()
 ```
+
+We can NOT implement: <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```kotlin
 fun validatePhone(phone: String): PhoneNumber? = TODO()
@@ -675,18 +682,12 @@ value class PhoneNumber private constructor(val value: String) {
   companion object {
 
     fun create(value: String): ValidationRes<PhoneNumber> {
-      val start = start(value)
-      val length = length(value)
-      return start.zip(length) { _, pn -> PhoneNumber(pn) }
+      // ValidatedNel<String, String>
+      val start = validateStart(value)
+      // ValidatedNel<String, String>
+      val length = validateLength(value) 
+      return start.zip(length) { _, phone -> PhoneNumber(phone) }
     }
-
-    private fun start(value: String): ValidationRes<String> =
-        if (value.startsWith('+')) value.valid()
-        else "Phone number must start with '+'".invalidNel()
-
-    private fun length(value: String): ValidationRes<String> =
-        if (value.length > 4) value.valid()
-        else "Phone number must be at least 4 chars".invalidNel()
   }
 }
 ```
@@ -697,13 +698,15 @@ Note: Multiple errors, switch to Validated
 
 ## Validated <3 Kotlin
 
+Interop with nullable types
+
 ```kotlin
 val validName = Validated.fromNullable(validateName(name)) {
     "Name can't be blank"
   }
 val validPhone = PhoneNumber.create(phoneNumber)
 
-validName.zip(validPhone) { name, phone -> TODO() }
+validName.zip(validPhone) { name, phone -> name to phone }
 ```
 
 >--
@@ -753,20 +756,20 @@ val signUpData = SignUpData.createEmail(
 ## Nullable Submit
 
 ```kotlin
+// Won't work, might need more than 1 error
+
+fun validateForm(
+  name: String, id: String, idType: IdType
+): SignUpData? = TODO()
+```
+
+```kotlin
 // Won't work, different kinds of error
 
 interface UserRepository {
 
     suspend fun doSignUp(signUpData: SignUpData): Token?
 }
-```
-
-```kotlin
-// Won't work, might need more than 1 error
-
-fun validateForm(
-  name: String, id: String, idType: IdType
-): SignUpData? = TODO()
 ```
 
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -781,23 +784,12 @@ Note: doesn't work with current requirements, if you have different requirements
 ## Sealed Submit
 
 ```kotlin
-data class FieldErrorDto(
-  val name: String,
-  val error: String
-)
-```
-
-```kotlin
 sealed class DoSignUpResult {
   data class Success(token: String): DoSignUpResult()
-  data class HttpError(
-    val msg: String, 
-    val errors: List<FieldErrorDto>
-  )
+  data class HttpError(val msg: String)
   object NetworkError: DoSignUpResult()
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 >--
 
@@ -809,7 +801,7 @@ val signUp: SignUp // Injected
 
 suspend fun doSignUp(body: SignUpBody): DoSignUpResult = 
   try {
-    val result = doSignUp(body)
+    val result = signUp.signUp(body)
     Success(result.token)
   } catch (e: HttpException) {
     e.toHttpError() // boring code inside
@@ -839,26 +831,17 @@ We saw how we could implement this
 ## Sealed Submit
 
 ```kotlin
-// ViewModel
-val repo: SignUpRepo // injected
-
-val state = MutableStateFlow(ViewState())
-
-fun onSubmit(name: String, id: String) {
-  state.update { it.copy(showProgress = true) }
-
+suspend fun signUpUser(name: String, id: String) { // ViewModel
   val body = validateForm(name, id, state.value.idType)
 
   if (body is FormResult.Success) {
-    viewModelScope.launch {
-      val result = repo.doSignUp(body) // Smart cast
-      when (result) {
-        is DoSignUpResult.Success -> // TODO: success
-        is DoSignUpResult.HttpError -> 
-          state.update { it.copy(error = result.msg) }
-        DoSignUpResult.NetworkError ->
-          state.update { it.copy(error = "Please check your connection") }
-      }
+    val result = repo.doSignUp(body) // Smart cast
+    when (result) {
+      is DoSignUpResult.Success -> // TODO: success
+      is DoSignUpResult.HttpError -> 
+        state.update { it.copy(error = result.msg) }
+      DoSignUpResult.NetworkError ->
+        state.update { it.copy(error = "Please check your connection") }
     }
   } else {
     // or do more complex error processing
@@ -1120,20 +1103,24 @@ fun onSubmit(name: String, id: String) {
 ## Error Handling
 
 - Exceptions - logic errors
-- Nullable types - single failure, in the small
-- Sealed types  
+- Nullable types <!-- .element: class="fragment" data-fragment-index="1" -->
+    - single failure 
+    - in the small
+- Sealed types <!-- .element: class="fragment" data-fragment-index="2" -->
   - multiple failures
-  - failing fast
   - across boundaries
 
 >--
 
 ## Error Handling
 
-- `Validated<E, A>` - accumulating errors using `zip`
-  - Focus on the happy path, arrow handles accumulating errors
-- `Either<A, B>` - multiple failures, across boundaries
-  - `either {}` solves the pyramid of doom problem
+- Validated<E, A>
+  - independent validations
+  - accumulating errors
+- Either<A, B> <!-- .element: class="fragment" data-fragment-index="1" -->
+  - multiple failures
+  - dependent functions
+  - across boundaries
 
 ---
 
