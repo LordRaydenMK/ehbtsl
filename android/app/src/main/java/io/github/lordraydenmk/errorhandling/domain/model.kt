@@ -1,7 +1,6 @@
 package io.github.lordraydenmk.errorhandling.domain
 
 import arrow.core.Nel
-import arrow.core.NonEmptyList
 import arrow.core.Validated
 import arrow.core.ValidatedNel
 import arrow.core.invalid
@@ -82,7 +81,7 @@ data class SignUpData(val name: String, val signUpId: SignUpId) {
             return validatedName.zip(validatedPhone, ::SignUpData)
         }
 
-        private fun createNameNel(name: String): Validated<NonEmptyList<FormFieldError>, String> =
+        private fun createNameNel(name: String): ValidatedNel<FormFieldError, String> =
             ValidationRes.fromNullable(validateName(name)) {
                 FormFieldError(FormFieldName.NAME, "Name can't be empty".nel()).nel()
             }
