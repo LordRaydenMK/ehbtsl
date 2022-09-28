@@ -569,12 +569,12 @@ val nel: Nel<Int> = nonEmptyListOf(1, 2, 3)
 // [1, 2, 3]
 
 val list = listOf(1, 2, 3)
-val nelOpt: Option<Nel<Int>> = Nel.fromList(list)
-// Option.Some([1, 2, 3])
+val nelOrNull: Nel<Int>? = list.toNonEmptyListOrNull()
+// Nel[1, 2, 3]
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-Note: `nonEmptyListOf()` requires at least one element. `fromList` forces handling of the failure. 
+Note: `nonEmptyListOf()` requires at least one element. `toNonEmptyListOrNull` forces handling of the failure. 
 
 >--
 
@@ -588,17 +588,17 @@ typealias ValidatedNel<E, A> = Validated<Nel<E>, A>
 // Validating a Phone Number
 fun validateStart(
   value: String
-): ValidatedNel<String, String> =
+): Validated<String, String> =
   if (value.startsWith('+')) value.valid()
-  else "Phone number must start with '+'".invalidNel()
+  else "Phone number must start with '+'".invalid()
 ```
 
 ```kotlin
 fun validateLength(
   value: String
-): ValidatedNel<String, String> =
+): Validated<String, String> =
   if (value.length > 4) value.valid()
-  else "Phone number must be at least 4 chars".invalidNel()
+  else "Phone number must be at least 4 chars".invalid()
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -608,11 +608,13 @@ fun validateLength(
 
 ```kotlin
 fun create(value: String): ValidatedNel<String, PhoneNumber> {
-  // ValidatedNel<String, String>
+  // Validated<String, String>
   val start = validateStart(value)
-  // // ValidatedNel<String, String>
-  val length = validateLength(value) 
-  return start.zip(length) { _, phone -> PhoneNumber(phone) }
+  // // Validated<String, String>
+  val length = validateLength(value).toValidatedNel()
+  return start.zip(length.toValidatedNel()) { _, phone -> 
+      PhoneNumber(phone) 
+    }
 }
 ```
 
@@ -682,11 +684,13 @@ value class PhoneNumber private constructor(val value: String) {
   companion object {
 
     fun create(value: String): ValidationRes<PhoneNumber> {
-      // ValidatedNel<String, String>
+      // Validated<String, String>
       val start = validateStart(value)
-      // ValidatedNel<String, String>
-      val length = validateLength(value) 
-      return start.zip(length) { _, phone -> PhoneNumber(phone) }
+      // Validated<String, String>
+      val length = validateLength(value).toValidatedNel()
+      return start.zip(length.toValidatedNel()) { _, phone -> 
+          PhoneNumber(phone) 
+        }
     }
   }
 }
