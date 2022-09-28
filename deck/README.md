@@ -1133,3 +1133,5 @@ fun onSubmit(name: String, id: String) {
 Thank you for your attention
 
 @s_anastasov
+
+![Slides and sample code](images/code.png)
