@@ -1,9 +1,9 @@
 package io.github.lordraydenmk.errorhandling.data
 
 import arrow.core.Either
-import arrow.core.Nel
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.toNonEmptyListOrNull
 import io.github.lordraydenmk.errorhandling.domain.FormFieldError
 import io.github.lordraydenmk.errorhandling.domain.FormFieldName
 import io.github.lordraydenmk.errorhandling.domain.SignUpData
@@ -32,11 +32,9 @@ private fun SignUpData.toBody(): SignUpBody = SignUpBody(name, email, phoneNumbe
 
 private fun SignUpErrorDto.toDomainError(): SignUpError {
     val domainErrors = errors.mapNotNull { it.toDomainError() }
-    return Nel.fromList(domainErrors)
-        .fold(
-            { SignUpError.HttpError(message) },
-            { SignUpError.ValidationError(it) }
-        )
+    return domainErrors.toNonEmptyListOrNull()?.let {
+        SignUpError.ValidationError(it)
+    } ?: SignUpError.HttpError(message)
 }
 
 private fun FormFieldDto.toDomainError(): FormFieldError? {
@@ -46,5 +44,10 @@ private fun FormFieldDto.toDomainError(): FormFieldError? {
         "phoneNumber" -> FormFieldName.PHONE_NUMBER
         else -> null // ignore errors for fields we don't know
     }
-    return formField?.let { FormFieldError(it, Nel.fromListUnsafe(errors)) }
+    return formField?.let {
+        FormFieldError(
+            it,
+            errors.toNonEmptyListOrNull() ?: throw IndexOutOfBoundsException("Empty list")
+        )
+    }
 }

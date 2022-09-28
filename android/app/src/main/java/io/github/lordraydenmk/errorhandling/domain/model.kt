@@ -4,7 +4,7 @@ import arrow.core.Nel
 import arrow.core.NonEmptyList
 import arrow.core.Validated
 import arrow.core.ValidatedNel
-import arrow.core.invalidNel
+import arrow.core.invalid
 import arrow.core.nel
 import arrow.core.valid
 import arrow.core.zip
@@ -36,17 +36,18 @@ value class PhoneNumber private constructor(val value: String) : SignUpId {
     companion object {
 
         fun create(value: String): ValidationRes<PhoneNumber> =
-            validateStart(value).zip(validateLength(value)) { _, phone ->
-                PhoneNumber(phone)
-            }
+            validateStart(value).toValidatedNel()
+                .zip(validateLength(value).toValidatedNel()) { _, phone ->
+                    PhoneNumber(phone)
+                }
 
-        private fun validateStart(value: String): ValidationRes<String> =
+        private fun validateStart(value: String): Validated<String, String> =
             if (value.startsWith('+')) value.valid()
-            else "Phone number must start with '+'".invalidNel()
+            else "Phone number must start with '+'".invalid()
 
-        private fun validateLength(value: String): ValidationRes<String> =
+        private fun validateLength(value: String): Validated<String, String> =
             if (value.length > 4) value.valid()
-            else "Phone number must be at least 4 chars".invalidNel()
+            else "Phone number must be at least 4 chars".invalid()
     }
 }
 
@@ -67,7 +68,7 @@ data class SignUpData(val name: String, val signUpId: SignUpId) {
     companion object {
 
         fun createEmail(name: String, email: String): FormValidationRes<SignUpData> {
-            val validatedName = createName(name)
+            val validatedName = createNameNel(name)
             val validatedEmail = ValidationRes.fromNullable(Email.create(email)) {
                 FormFieldError(FormFieldName.EMAIL, "Email must contain '@'".nel()).nel()
             }
@@ -75,13 +76,13 @@ data class SignUpData(val name: String, val signUpId: SignUpId) {
         }
 
         fun createPhone(name: String, phoneNumber: String): FormValidationRes<SignUpData> {
-            val validatedName = createName(name)
+            val validatedName = createNameNel(name)
             val validatedPhone = PhoneNumber.create(phoneNumber)
                 .mapLeft { FormFieldError(FormFieldName.PHONE_NUMBER, it).nel() }
             return validatedName.zip(validatedPhone, ::SignUpData)
         }
 
-        private fun createName(name: String): Validated<NonEmptyList<FormFieldError>, String> =
+        private fun createNameNel(name: String): Validated<NonEmptyList<FormFieldError>, String> =
             ValidationRes.fromNullable(validateName(name)) {
                 FormFieldError(FormFieldName.NAME, "Name can't be empty".nel()).nel()
             }

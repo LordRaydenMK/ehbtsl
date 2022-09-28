@@ -3,7 +3,7 @@ package io.github.lordraydenmk.errorhandling.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arrow.core.Either
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import io.github.lordraydenmk.errorhandling.data.UserRepositoryImpl
 import io.github.lordraydenmk.errorhandling.domain.SignUpData
 import io.github.lordraydenmk.errorhandling.domain.UserRepository
